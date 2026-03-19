@@ -266,4 +266,317 @@ function displayMusicLibrary() {
     
     let html = '';
     songs.forEach(song => {
-        const isPlaying = currentSongIndex !== -1 && music
+        const isPlaying = currentSongIndex !== -1 && musicLibrary[currentSongIndex]?.id === song.id;
+        const isFav = isFavourite(song.id);
+        
+        html += `
+            <div class="song-item ${isPlaying ? 'playing' : ''}" onclick="playSongById(${song.id})">
+                <div class="song-artwork"><i class="fas fa-music"></i></div>
+                <div class="song-info">
+                    <div class="song-title">${escapeHtml(song.name)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}</div>
+                </div>
+                <div class="song-duration">${formatTime(song.duration)}</div>
+                <div class="song-actions" onclick="event.stopPropagation()">
+                    <button onclick="toggleFavourite(${song.id})" class="favourite-btn ${isFav ? 'active' : ''}">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                    <button onclick="addToPlaylist(${song.id})" class="secondary"><i class="fas fa-plus"></i></button>
+                    <button onclick="deleteSong(${song.id})" class="danger"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('songsList').innerHTML = html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function displayFavourites() {
+    if (!hasPermission || favourites.length === 0) {
+        document.getElementById('favouritesList').innerHTML = `
+            <div class="empty-state"><i class="fas fa-heart"></i><h3>No favourites</h3></div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    favourites.forEach(song => {
+        html += `
+            <div class="song-item" onclick="playSongById(${song.id})">
+                <div class="song-artwork"><i class="fas fa-music"></i></div>
+                <div class="song-info">
+                    <div class="song-title">${escapeHtml(song.name)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}</div>
+                </div>
+                <div class="song-duration">${formatTime(song.duration)}</div>
+                <div class="song-actions" onclick="event.stopPropagation()">
+                    <button onclick="toggleFavourite(${song.id})" class="favourite-btn active">
+                        <i class="fas fa-heart"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('favouritesList').innerHTML = html;
+}
+
+function displayRecentSongs() {
+    if (!hasPermission || musicLibrary.length === 0) {
+        document.getElementById('recentSongsList').innerHTML = `
+            <div class="empty-state"><i class="fas fa-clock"></i><h3>No recent songs</h3></div>
+        `;
+        return;
+    }
+    
+    const recent = [...musicLibrary].sort((a,b) => new Date(b.added) - new Date(a.added)).slice(0, 10);
+    let html = '';
+    recent.forEach(song => {
+        html += `
+            <div class="song-item" onclick="playSongById(${song.id})">
+                <div class="song-artwork"><i class="fas fa-music"></i></div>
+                <div class="song-info">
+                    <div class="song-title">${escapeHtml(song.name)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}</div>
+                </div>
+                <div class="song-duration">${formatTime(song.duration)}</div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('recentSongsList').innerHTML = html;
+}
+
+function displayPlaylists() {
+    if (!hasPermission) return;
+    
+    if (playlists.length === 0) {
+        document.getElementById('emptyPlaylists').style.display = 'block';
+        document.getElementById('playlistsGrid').innerHTML = '';
+        return;
+    }
+    
+    document.getElementById('emptyPlaylists').style.display = 'none';
+    let html = '';
+    playlists.forEach((p, i) => {
+        html += `
+            <div class="playlist-card" onclick="openPlaylist(${i})">
+                <div class="playlist-icon"><i class="fas fa-list"></i></div>
+                <div class="playlist-name">${escapeHtml(p.name)}</div>
+                <div class="playlist-count">${p.songs.length} songs</div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('playlistsGrid').innerHTML = html;
+}
+
+function createPlaylist() {
+    const name = prompt('Playlist name:');
+    if (!name) return;
+    
+    playlists.push({ id: Date.now(), name, songs: [], created: new Date().toISOString() });
+    savePlaylists();
+    displayPlaylists();
+    updateStats();
+    showToast(`✅ Playlist created`);
+}
+
+function addToPlaylist(songId) {
+    if (playlists.length === 0) {
+        if (confirm('Create a playlist first?')) createPlaylist();
+        return;
+    }
+    
+    const song = musicLibrary.find(s => s.id === songId);
+    if (!song) return;
+    
+    const list = playlists.map((p,i) => `${i+1}. ${p.name}`).join('\n');
+    const choice = prompt(`Select playlist:\n${list}`);
+    
+    if (choice && !isNaN(choice) && choice > 0 && choice <= playlists.length) {
+        const idx = choice - 1;
+        if (!playlists[idx].songs.some(s => s.id === song.id)) {
+            playlists[idx].songs.push(song);
+            savePlaylists();
+            showToast(`✅ Added to ${playlists[idx].name}`);
+        }
+    }
+}
+
+function openPlaylist(idx) {
+    const songs = playlists[idx].songs;
+    if (songs.length === 0) {
+        showToast('Playlist empty');
+        return;
+    }
+    
+    showPage('library');
+    
+    let html = '';
+    songs.forEach(song => {
+        html += `
+            <div class="song-item" onclick="playSongById(${song.id})">
+                <div class="song-artwork"><i class="fas fa-music"></i></div>
+                <div class="song-info">
+                    <div class="song-title">${escapeHtml(song.name)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}</div>
+                </div>
+                <div class="song-duration">${formatTime(song.duration)}</div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('songsList').innerHTML = html;
+}
+
+function loadProfile() {
+    document.getElementById('displayName').value = profile.name;
+    document.getElementById('defaultVolume').value = profile.volume;
+    document.getElementById('volumeControl').value = profile.volume;
+    document.getElementById('profileName').textContent = profile.name;
+    audio.volume = profile.volume;
+}
+
+function saveProfile() {
+    profile.name = document.getElementById('displayName').value;
+    profile.volume = parseFloat(document.getElementById('defaultVolume').value);
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    updateProfileDropdown();
+    document.getElementById('profileName').textContent = profile.name;
+    showToast('✅ Settings saved');
+}
+
+function updateProfilePicture() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            profile.picture = event.target.result;
+            saveProfile();
+            updateProfileDropdown();
+            showToast('✅ Photo updated');
+        };
+        reader.readAsDataURL(file);
+    };
+    
+    input.click();
+}
+
+function updateProfileDropdown() {
+    document.getElementById('dropdown-username').textContent = profile.name;
+    
+    if (profile.picture) {
+        document.getElementById('profile-icon').innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+        document.getElementById('dropdown-profile-pic').innerHTML = `<img src="${profile.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+    }
+}
+
+function logout() {
+    if (confirm('Logout?')) {
+        showToast('👋 Logged out');
+        showPage('library');
+    }
+}
+
+function saveLibrary() {
+    localStorage.setItem(MUSIC_LIBRARY_KEY, JSON.stringify(musicLibrary));
+    updateStats();
+}
+
+function saveFavourites() {
+    localStorage.setItem(FAVOURITES_KEY, JSON.stringify(favourites));
+}
+
+function savePlaylists() {
+    localStorage.setItem(PLAYLISTS_KEY, JSON.stringify(playlists));
+}
+
+function deleteSong(songId) {
+    if (!confirm('Delete?')) return;
+    
+    const idx = musicLibrary.findIndex(s => s.id === songId);
+    if (idx !== -1) {
+        URL.revokeObjectURL(musicLibrary[idx].url);
+        musicLibrary.splice(idx, 1);
+        
+        const favIdx = favourites.findIndex(f => f.id === songId);
+        if (favIdx !== -1) favourites.splice(favIdx, 1);
+        
+        saveLibrary();
+        saveFavourites();
+        displayMusicLibrary();
+        displayFavourites();
+        updateStats();
+        
+        if (currentSongIndex === idx) {
+            audio.pause();
+            currentSongIndex = -1;
+            document.getElementById('nowPlayingBar').style.display = 'none';
+        }
+        
+        showToast('✅ Deleted');
+    }
+}
+
+function clearAllData() {
+    if (!confirm('Clear everything?')) return;
+    
+    musicLibrary.forEach(s => URL.revokeObjectURL(s.url));
+    musicLibrary = [];
+    favourites = [];
+    playlists = [];
+    
+    localStorage.setItem(MUSIC_LIBRARY_KEY, '[]');
+    localStorage.setItem(FAVOURITES_KEY, '[]');
+    localStorage.setItem(PLAYLISTS_KEY, '[]');
+    
+    displayMusicLibrary();
+    displayFavourites();
+    displayPlaylists();
+    displayRecentSongs();
+    updateStats();
+    
+    audio.pause();
+    document.getElementById('nowPlayingBar').style.display = 'none';
+    showToast('✅ Library cleared');
+}
+
+function updateStats() {
+    if (!hasPermission) return;
+    
+    const size = (musicLibrary.reduce((s, song) => s + (song.size || 0), 0) / (1024*1024)).toFixed(2);
+    const mins = Math.round(musicLibrary.reduce((s, song) => s + (song.duration || 0), 0) / 60);
+    
+    document.getElementById('totalSongs').textContent = musicLibrary.length;
+    document.getElementById('totalFavourites').textContent = favourites.length;
+    document.getElementById('totalPlaylists').textContent = playlists.length;
+    document.getElementById('storageUsed').textContent = size + ' MB';
+    document.getElementById('totalSongsStat').textContent = musicLibrary.length;
+    document.getElementById('totalFavouritesStat').textContent = favourites.length;
+    document.getElementById('totalStorage').textContent = size + ' MB';
+    document.getElementById('totalPlaytime').textContent = mins + ' min';
+}
+
+function searchMusic() {
+    displayMusicLibrary();
+}
+
+function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+            }
