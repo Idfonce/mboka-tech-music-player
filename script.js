@@ -1,12 +1,17 @@
 // ===========================================
-// MUSIC PLAYER DATA
+// MBOKA-TECH MUSIC PLAYER - APK COMPATIBLE
 // ===========================================
+
+// Global Variables
 let playlist = [];
 let currentIndex = -1;
 let isPlaying = false;
 let isRepeat = false;
 let isShuffle = false;
 let currentLyrics = "";
+let favourites = [];
+let playlists = [];
+let currentUser = null;
 
 // DOM Elements
 const audio = document.getElementById('audioPlayer');
@@ -21,38 +26,20 @@ const volumeControl = document.getElementById('volumeControl');
 const nowPlayingCard = document.getElementById('nowPlayingCard');
 const playingAnimation = document.getElementById('playingAnimation');
 const lyricsContent = document.getElementById('lyricsContent');
-
-// User Data
-let currentUser = null;
-let favourites = [];
-let playlists = [];
+const toast = document.getElementById('toast');
 
 // ===========================================
 // INITIALIZATION
 // ===========================================
 document.addEventListener('DOMContentLoaded', function() {
     // Load saved data
-    loadUserData();
-    loadPlaylist();
-    
-    // Setup file input
-    document.getElementById('fileInput').addEventListener('change', handleFileSelect);
-    document.getElementById('lyricsFileInput').addEventListener('change', handleLyricsImport);
+    loadSavedData();
     
     // Setup audio events
     setupAudioEvents();
     
-    // Setup volume
-    audio.volume = 0.7;
-    volumeControl.value = 0.7;
-    
-    // Setup progress bar click
-    progressBar.addEventListener('click', seek);
-    
-    // Volume control
-    volumeControl.addEventListener('input', function(e) {
-        audio.volume = e.target.value;
-    });
+    // Setup file inputs
+    setupFileInputs();
     
     // Setup sidebar
     setupSidebar();
@@ -63,72 +50,150 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup page navigation
     setupPageNavigation();
     
-    showToast('Welcome! Add songs to start listening');
+    // Setup volume
+    audio.volume = 0.7;
+    volumeControl.value = 0.7;
+    volumeControl.addEventListener('input', (e) => audio.volume = e.target.value);
+    
+    // Progress bar click
+    progressBar.addEventListener('click', seek);
+    
+    // Check if we have songs
+    if (playlist.length === 0) {
+        showToast('Tap "Add Songs" to add your music files');
+    } else {
+        renderPlaylist();
+    }
 });
 
 // ===========================================
-// SIDEBAR FUNCTIONS
+// PERMISSION FUNCTIONS
 // ===========================================
-function setupSidebar() {
-    const menuBtn = document.getElementById('menuBtn');
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebarOverlay');
-    const closeBtn = document.getElementById('closeSidebar');
-    
-    function openSidebar() {
-        sidebar.classList.add('active');
-        overlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-    
-    function closeSidebar() {
-        sidebar.classList.remove('active');
-        overlay.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-    
-    menuBtn.addEventListener('click', openSidebar);
-    closeBtn.addEventListener('click', closeSidebar);
-    overlay.addEventListener('click', closeSidebar);
+function grantPermission() {
+    document.getElementById('permissionModal').style.display = 'none';
+    document.getElementById('fileInput').click();
 }
 
-function setupPageNavigation() {
-    const sidebarItems = document.querySelectorAll('.sidebar-item');
-    const pages = ['home', 'playlists', 'favourites', 'about'];
+function useDemoMode() {
+    document.getElementById('permissionModal').style.display = 'none';
+    addDemoSongs();
+    showToast('Demo mode activated. Add your own songs for full functionality');
+}
+
+function addDemoSongs() {
+    const demoSongs = [
+        { name: 'Demo Song 1', artist: 'MBOKA-TECH', duration: 180 },
+        { name: 'Demo Song 2', artist: 'MBOKA-TECH', duration: 210 },
+        { name: 'Demo Song 3', artist: 'MBOKA-TECH', duration: 195 }
+    ];
     
-    sidebarItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            e.preventDefault();
-            const pageId = this.getAttribute('data-page');
-            
-            // Update active state
-            sidebarItems.forEach(i => i.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show selected page
-            pages.forEach(page => {
-                const pageEl = document.getElementById(`${page}-page`);
-                if (pageEl) pageEl.classList.remove('active');
-            });
-            document.getElementById(`${pageId}-page`).classList.add('active');
-            
-            // Close sidebar
-            document.getElementById('sidebar').classList.remove('active');
-            document.getElementById('sidebarOverlay').classList.remove('active');
-            document.body.style.overflow = '';
-            
-            // Refresh content
-            if (pageId === 'playlists') renderPlaylists();
-            if (pageId === 'favourites') renderFavourites();
-        });
+    demoSongs.forEach((song, index) => {
+        // Create a silent audio blob for demo
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const duration = song.duration;
+        const sampleRate = 44100;
+        const frameCount = duration * sampleRate;
+        const audioBuffer = audioContext.createBuffer(2, frameCount, sampleRate);
+        
+        // Fill with silence
+        for (let channel = 0; channel < 2; channel++) {
+            const channelData = audioBuffer.getChannelData(channel);
+            for (let i = 0; i < frameCount; i++) {
+                channelData[i] = 0;
+            }
+        }
+        
+        // Convert to blob
+        const wavBlob = audioBufferToWav(audioBuffer);
+        const url = URL.createObjectURL(wavBlob);
+        
+        const newSong = {
+            id: Date.now() + index,
+            name: song.name,
+            artist: song.artist,
+            url: url,
+            duration: song.duration,
+            added: new Date().toISOString(),
+            lyrics: `Demo lyrics for ${song.name}\n\nThis is a demo song. Add your own music files to play real audio.`
+        };
+        
+        playlist.push(newSong);
     });
+    
+    savePlaylist();
+    renderPlaylist();
+    if (playlist.length > 0) playSong(0);
+}
+
+function audioBufferToWav(buffer) {
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const format = 1;
+    const bitDepth = 16;
+    
+    const bytesPerSample = bitDepth / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    
+    const samples = [];
+    for (let channel = 0; channel < numChannels; channel++) {
+        samples.push(buffer.getChannelData(channel));
+    }
+    
+    const dataLength = samples[0].length * bytesPerSample * numChannels;
+    const headerLength = 44;
+    const wavBytes = new DataView(new ArrayBuffer(headerLength + dataLength));
+    
+    // Write WAV header
+    writeString(wavBytes, 0, 'RIFF');
+    wavBytes.setUint32(4, 36 + dataLength, true);
+    writeString(wavBytes, 8, 'WAVE');
+    writeString(wavBytes, 12, 'fmt ');
+    wavBytes.setUint32(16, 16, true);
+    wavBytes.setUint16(20, format, true);
+    wavBytes.setUint16(22, numChannels, true);
+    wavBytes.setUint32(24, sampleRate, true);
+    wavBytes.setUint32(28, sampleRate * blockAlign, true);
+    wavBytes.setUint16(32, blockAlign, true);
+    wavBytes.setUint16(34, bitDepth, true);
+    writeString(wavBytes, 36, 'data');
+    wavBytes.setUint32(40, dataLength, true);
+    
+    // Write audio data
+    let offset = 44;
+    for (let i = 0; i < samples[0].length; i++) {
+        for (let channel = 0; channel < numChannels; channel++) {
+            const sample = Math.max(-1, Math.min(1, samples[channel][i]));
+            const intSample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+            wavBytes.setInt16(offset, intSample, true);
+            offset += 2;
+        }
+    }
+    
+    return new Blob([wavBytes], { type: 'audio/wav' });
+}
+
+function writeString(view, offset, string) {
+    for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+    }
 }
 
 // ===========================================
 // FILE HANDLING
 // ===========================================
+function setupFileInputs() {
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', handleFileSelect);
+    
+    document.getElementById('addSongsBtn').addEventListener('click', () => fileInput.click());
+    document.getElementById('addSongsEmptyBtn').addEventListener('click', () => fileInput.click());
+    document.getElementById('lyricsFileInput').addEventListener('change', handleLyricsImport);
+}
+
 function handleFileSelect(event) {
     const files = Array.from(event.target.files);
+    
+    if (files.length === 0) return;
     
     files.forEach(file => {
         if (!file.type.startsWith('audio/')) {
@@ -161,6 +226,10 @@ function handleFileSelect(event) {
                 playSong(0);
             }
         });
+        
+        tempAudio.addEventListener('error', () => {
+            showToast(`❌ Error loading: ${file.name}`);
+        });
     });
 }
 
@@ -184,11 +253,10 @@ function renderPlaylist() {
                 <i class="fas fa-headphones"></i>
                 <h3>No Songs Added</h3>
                 <p>Click "Add Songs" to add music from your device</p>
-                <button class="add-btn" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-plus-circle"></i> Add Songs
-                </button>
+                <button class="add-btn" id="addSongsEmptyBtn"><i class="fas fa-plus-circle"></i> Add Songs</button>
             </div>
         `;
+        document.getElementById('addSongsEmptyBtn')?.addEventListener('click', () => document.getElementById('fileInput').click());
         return;
     }
     
@@ -226,27 +294,31 @@ function playSong(index) {
     
     audio.src = song.url;
     audio.load();
-    audio.play();
     
-    isPlaying = true;
-    updatePlayButton();
-    
-    currentSongTitle.textContent = song.name;
-    currentSongArtist.textContent = song.artist;
-    nowPlayingCard.style.display = 'block';
-    playingAnimation.style.display = 'flex';
-    
-    renderPlaylist();
-    
-    // Display lyrics if available
-    if (song.lyrics) {
-        currentLyrics = song.lyrics;
-        displayLyrics(song.lyrics);
-        document.getElementById('lyricsCard').style.display = 'block';
-    } else {
-        currentLyrics = "";
-        lyricsContent.innerHTML = '<p>No lyrics added. Click "Import" to add lyrics for this song.</p>';
-        document.getElementById('lyricsCard').style.display = 'block';
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            isPlaying = true;
+            updatePlayButton();
+            currentSongTitle.textContent = song.name;
+            currentSongArtist.textContent = song.artist;
+            nowPlayingCard.style.display = 'block';
+            playingAnimation.style.display = 'flex';
+            renderPlaylist();
+            
+            if (song.lyrics) {
+                displayLyrics(song.lyrics);
+                document.getElementById('lyricsCard').style.display = 'block';
+            } else {
+                lyricsContent.innerHTML = '<p>No lyrics added. Click "Import" to add lyrics for this song.</p>';
+                document.getElementById('lyricsCard').style.display = 'block';
+            }
+        }).catch(error => {
+            console.log('Playback failed:', error);
+            showToast('Tap play button to start playback');
+            isPlaying = false;
+            updatePlayButton();
+        });
     }
 }
 
@@ -266,9 +338,16 @@ function playPause() {
         isPlaying = false;
         playingAnimation.style.display = 'none';
     } else {
-        audio.play();
-        isPlaying = true;
-        playingAnimation.style.display = 'flex';
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                isPlaying = true;
+                playingAnimation.style.display = 'flex';
+            }).catch(error => {
+                console.log('Playback failed:', error);
+                showToast('Tap play button again');
+            });
+        }
     }
     
     updatePlayButton();
@@ -288,7 +367,7 @@ function nextSong() {
             if (isRepeat) {
                 nextIndex = 0;
             } else {
-                showToast('This is the last song in playlist');
+                showToast('End of playlist');
                 return;
             }
         }
@@ -305,40 +384,12 @@ function previousSong() {
         if (isRepeat) {
             prevIndex = playlist.length - 1;
         } else {
-            showToast('This is the first song in playlist');
+            showToast('Beginning of playlist');
             return;
         }
     }
     
     playSong(prevIndex);
-}
-
-function toggleRepeat() {
-    isRepeat = !isRepeat;
-    const repeatBtn = document.getElementById('repeatBtn');
-    if (isRepeat) {
-        repeatBtn.style.background = '#ff6b6b';
-        repeatBtn.style.color = 'white';
-        showToast('Repeat mode: ON');
-    } else {
-        repeatBtn.style.background = '#f0f0f0';
-        repeatBtn.style.color = '#333';
-        showToast('Repeat mode: OFF');
-    }
-}
-
-function toggleShuffle() {
-    isShuffle = !isShuffle;
-    const shuffleBtn = document.getElementById('shuffleBtn');
-    if (isShuffle) {
-        shuffleBtn.style.background = '#ff6b6b';
-        shuffleBtn.style.color = 'white';
-        showToast('Shuffle mode: ON');
-    } else {
-        shuffleBtn.style.background = '#f0f0f0';
-        shuffleBtn.style.color = '#333';
-        showToast('Shuffle mode: OFF');
-    }
 }
 
 function removeSong(index) {
@@ -362,6 +413,7 @@ function removeSong(index) {
                 playingAnimation.style.display = 'none';
                 currentSongTitle.textContent = 'Select a song to play';
                 currentSongArtist.textContent = 'Unknown Artist';
+                document.getElementById('lyricsCard').style.display = 'none';
             }
         } else if (currentIndex > index) {
             currentIndex--;
@@ -387,6 +439,76 @@ function clearPlaylist() {
         currentSongArtist.textContent = 'Unknown Artist';
         document.getElementById('lyricsCard').style.display = 'none';
         showToast('✅ All songs cleared');
+    }
+}
+
+function toggleRepeat() {
+    isRepeat = !isRepeat;
+    const repeatBtn = document.getElementById('repeatBtn');
+    if (isRepeat) {
+        repeatBtn.style.background = '#ff6b6b';
+        repeatBtn.style.color = 'white';
+        showToast('Repeat: ON');
+    } else {
+        repeatBtn.style.background = '#f0f0f0';
+        repeatBtn.style.color = '#333';
+        showToast('Repeat: OFF');
+    }
+}
+
+function toggleShuffle() {
+    isShuffle = !isShuffle;
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    if (isShuffle) {
+        shuffleBtn.style.background = '#ff6b6b';
+        shuffleBtn.style.color = 'white';
+        showToast('Shuffle: ON');
+    } else {
+        shuffleBtn.style.background = '#f0f0f0';
+        shuffleBtn.style.color = '#333';
+        showToast('Shuffle: OFF');
+    }
+}
+
+// ===========================================
+// AUDIO EVENTS
+// ===========================================
+function setupAudioEvents() {
+    audio.addEventListener('timeupdate', updateProgress);
+    audio.addEventListener('ended', () => {
+        if (isRepeat) {
+            audio.currentTime = 0;
+            audio.play();
+        } else {
+            nextSong();
+        }
+    });
+    audio.addEventListener('loadedmetadata', () => {
+        durationSpan.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener('error', (e) => {
+        console.log('Audio error:', e);
+        showToast('Error playing audio. Try re-adding the file.');
+    });
+}
+
+function updateProgress() {
+    const progress = (audio.currentTime / audio.duration) * 100 || 0;
+    progressFill.style.width = `${progress}%`;
+    currentTimeSpan.textContent = formatTime(audio.currentTime);
+}
+
+function seek(e) {
+    const rect = progressBar.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = percent * audio.duration;
+}
+
+function updatePlayButton() {
+    if (isPlaying) {
+        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+    } else {
+        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
     }
 }
 
@@ -448,6 +570,8 @@ function toggleFavourite(songIndex) {
 function renderFavourites() {
     const favouritesList = document.getElementById('favouritesList');
     
+    if (!favouritesList) return;
+    
     if (favourites.length === 0) {
         favouritesList.innerHTML = `
             <div class="empty-playlist">
@@ -471,7 +595,7 @@ function renderFavourites() {
                 </div>
                 <div class="song-duration">${formatTime(song.duration)}</div>
                 <div class="song-actions">
-                    <button onclick="event.stopPropagation(); toggleFavouriteBySongId(${song.id})">
+                    <button onclick="event.stopPropagation(); removeFavourite(${song.id})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -482,7 +606,7 @@ function renderFavourites() {
     favouritesList.innerHTML = html;
 }
 
-function toggleFavouriteBySongId(songId) {
+function removeFavourite(songId) {
     const index = favourites.findIndex(f => f.id === songId);
     if (index !== -1) {
         favourites.splice(index, 1);
@@ -514,6 +638,8 @@ function createPlaylist() {
 function renderPlaylists() {
     const playlistsGrid = document.getElementById('playlistsGrid');
     
+    if (!playlistsGrid) return;
+    
     if (playlists.length === 0) {
         playlistsGrid.innerHTML = `
             <div class="empty-playlist">
@@ -544,53 +670,13 @@ function renderPlaylists() {
 }
 
 // ===========================================
-// AUDIO EVENTS
-// ===========================================
-function setupAudioEvents() {
-    audio.addEventListener('timeupdate', updateProgress);
-    audio.addEventListener('ended', handleSongEnd);
-    audio.addEventListener('loadedmetadata', () => {
-        durationSpan.textContent = formatTime(audio.duration);
-    });
-}
-
-function updateProgress() {
-    const progress = (audio.currentTime / audio.duration) * 100 || 0;
-    progressFill.style.width = `${progress}%`;
-    currentTimeSpan.textContent = formatTime(audio.currentTime);
-}
-
-function handleSongEnd() {
-    if (isRepeat) {
-        audio.currentTime = 0;
-        audio.play();
-    } else {
-        nextSong();
-    }
-}
-
-function seek(e) {
-    const rect = progressBar.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    audio.currentTime = percent * audio.duration;
-}
-
-function updatePlayButton() {
-    if (isPlaying) {
-        playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
-    } else {
-        playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
-    }
-}
-
-// ===========================================
 // USER FUNCTIONS
 // ===========================================
 function login() {
     const username = document.getElementById('loginUsername').value;
     const password = document.getElementById('loginPassword').value;
     
-    const users = JSON.parse(localStorage.getItem('whatsapp_users') || '[]');
+    const users = JSON.parse(localStorage.getItem('mboka_users') || '[]');
     const user = users.find(u => u.username === username && u.password === password);
     
     if (user) {
@@ -623,7 +709,7 @@ function register() {
         return;
     }
     
-    const users = JSON.parse(localStorage.getItem('whatsapp_users') || '[]');
+    const users = JSON.parse(localStorage.getItem('mboka_users') || '[]');
     if (users.find(u => u.username === username)) {
         showToast('Username already exists');
         return;
@@ -638,7 +724,7 @@ function register() {
     };
     
     users.push(newUser);
-    localStorage.setItem('whatsapp_users', JSON.stringify(users));
+    localStorage.setItem('mboka_users', JSON.stringify(users));
     
     currentUser = {
         username: newUser.username,
@@ -678,7 +764,7 @@ function updateUIForLoggedInUser() {
 }
 
 function showProfilePage() {
-    showToast('Profile feature coming soon!');
+    showToast('Profile settings coming soon!');
 }
 
 function switchAuthTab(tab) {
@@ -698,6 +784,56 @@ function switchAuthTab(tab) {
         loginForm.style.display = 'none';
         registerForm.style.display = 'block';
     }
+}
+
+// ===========================================
+// SIDEBAR & NAVIGATION
+// ===========================================
+function setupSidebar() {
+    const menuBtn = document.getElementById('menuBtn');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const closeBtn = document.getElementById('closeSidebar');
+    
+    function openSidebar() {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeSidebar() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    menuBtn.addEventListener('click', openSidebar);
+    closeBtn.addEventListener('click', closeSidebar);
+    overlay.addEventListener('click', closeSidebar);
+}
+
+function setupPageNavigation() {
+    const sidebarItems = document.querySelectorAll('.sidebar-item');
+    
+    sidebarItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            const pageId = this.getAttribute('data-page');
+            
+            sidebarItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+            
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+            document.getElementById(`${pageId}-page`).classList.add('active');
+            
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+            document.body.style.overflow = '';
+            
+            if (pageId === 'playlists') renderPlaylists();
+            if (pageId === 'favourites') renderFavourites();
+        });
+    });
 }
 
 function setupProfileDropdown() {
@@ -730,53 +866,38 @@ function savePlaylist() {
     localStorage.setItem('mboka_playlist', JSON.stringify(playlistData));
 }
 
-function loadPlaylist() {
-    const saved = localStorage.getItem('mboka_playlist');
-    if (saved) {
-        const savedPlaylist = JSON.parse(saved);
-        if (savedPlaylist.length > 0) {
-            showToast(`${savedPlaylist.length} songs found. Please re-add your music files to play them.`);
+function loadSavedData() {
+    // Load playlist
+    const savedPlaylist = localStorage.getItem('mboka_playlist');
+    if (savedPlaylist) {
+        const saved = JSON.parse(savedPlaylist);
+        if (saved.length > 0) {
+            showToast(`${saved.length} songs found in library. Add them again to play.`);
         }
     }
+    
+    // Load favourites
+    const savedFavourites = localStorage.getItem('mboka_favourites');
+    if (savedFavourites) favourites = JSON.parse(savedFavourites);
+    
+    // Load playlists
+    const savedPlaylists = localStorage.getItem('mboka_playlists');
+    if (savedPlaylists) playlists = JSON.parse(savedPlaylists);
 }
 
 function saveFavourites() {
     localStorage.setItem('mboka_favourites', JSON.stringify(favourites));
 }
 
-function loadFavourites() {
-    const saved = localStorage.getItem('mboka_favourites');
-    if (saved) {
-        favourites = JSON.parse(saved);
-    }
-}
-
 function savePlaylists() {
     localStorage.setItem('mboka_playlists', JSON.stringify(playlists));
-}
-
-function loadPlaylists() {
-    const saved = localStorage.getItem('mboka_playlists');
-    if (saved) {
-        playlists = JSON.parse(saved);
-    }
-}
-
-function loadUserData() {
-    const savedUser = localStorage.getItem('current_user');
-    if (savedUser) {
-        currentUser = JSON.parse(savedUser);
-        updateUIForLoggedInUser();
-    }
-    loadFavourites();
-    loadPlaylists();
 }
 
 // ===========================================
 // HELPER FUNCTIONS
 // ===========================================
 function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
+    if (isNaN(seconds) || !isFinite(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -789,7 +910,6 @@ function escapeHtml(text) {
 }
 
 function showToast(message) {
-    const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.style.display = 'block';
     setTimeout(() => {
