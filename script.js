@@ -11,7 +11,10 @@ let isShuffle = false;
 let currentLyrics = "";
 let favourites = [];
 let playlists = [];
-let currentUser = null;
+let userProfile = {
+    name: "Music Lover",
+    picture: null
+};
 
 // DOM Elements
 const audio = document.getElementById('audioPlayer');
@@ -58,52 +61,59 @@ document.addEventListener('DOMContentLoaded', function() {
     // Progress bar click
     progressBar.addEventListener('click', seek);
     
-    // Check if we have songs
-    if (playlist.length === 0) {
-        showToast('Tap "Add Songs" to add your music files');
-    } else {
-        renderPlaylist();
-    }
+    // Load profile picture
+    loadProfilePicture();
+    
+    // Update UI
+    updateProfileUI();
+    
+    showToast('Welcome! Add songs to start listening');
 });
 
 // ===========================================
-// PERMISSION FUNCTIONS
+// PERMISSION HANDLING
 // ===========================================
-function grantPermission() {
-    document.getElementById('permissionModal').style.display = 'none';
+document.getElementById('requestPermissionBtn').addEventListener('click', function() {
+    document.getElementById('permissionScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
     document.getElementById('fileInput').click();
-}
+});
 
-function useDemoMode() {
-    document.getElementById('permissionModal').style.display = 'none';
+document.getElementById('demoModeBtn').addEventListener('click', function() {
+    document.getElementById('permissionScreen').style.display = 'none';
+    document.getElementById('mainApp').style.display = 'block';
     addDemoSongs();
     showToast('Demo mode activated. Add your own songs for full functionality');
-}
+});
 
+// ===========================================
+// DEMO SONGS
+// ===========================================
 function addDemoSongs() {
     const demoSongs = [
-        { name: 'Demo Song 1', artist: 'MBOKA-TECH', duration: 180 },
-        { name: 'Demo Song 2', artist: 'MBOKA-TECH', duration: 210 },
-        { name: 'Demo Song 3', artist: 'MBOKA-TECH', duration: 195 }
+        { name: 'Demo Song 1 - Chill Vibes', artist: 'MBOKA-TECH', duration: 180 },
+        { name: 'Demo Song 2 - Relaxing', artist: 'MBOKA-TECH', duration: 210 },
+        { name: 'Demo Song 3 - Upbeat', artist: 'MBOKA-TECH', duration: 195 }
     ];
     
     demoSongs.forEach((song, index) => {
-        // Create a silent audio blob for demo
+        // Create a simple beep sound for demo
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const duration = song.duration;
         const sampleRate = 44100;
         const frameCount = duration * sampleRate;
         const audioBuffer = audioContext.createBuffer(2, frameCount, sampleRate);
         
-        // Fill with silence
+        // Create a simple sine wave for demo
         for (let channel = 0; channel < 2; channel++) {
             const channelData = audioBuffer.getChannelData(channel);
             for (let i = 0; i < frameCount; i++) {
-                channelData[i] = 0;
+                // Simple beep every second for demo
+                const t = i / sampleRate;
+                channelData[i] = Math.sin(2 * Math.PI * 440 * t) * Math.exp(-t * 2) * 0.3;
             }
         }
         
-        // Convert to blob
         const wavBlob = audioBufferToWav(audioBuffer);
         const url = URL.createObjectURL(wavBlob);
         
@@ -114,7 +124,7 @@ function addDemoSongs() {
             url: url,
             duration: song.duration,
             added: new Date().toISOString(),
-            lyrics: `Demo lyrics for ${song.name}\n\nThis is a demo song. Add your own music files to play real audio.`
+            lyrics: `Demo lyrics for ${song.name}\n\nThis is a demo song.\n\nAdd your own music files to play real audio.\n\nClick "Add Songs" to import your MP3 files.`
         };
         
         playlist.push(newSong);
@@ -143,7 +153,6 @@ function audioBufferToWav(buffer) {
     const headerLength = 44;
     const wavBytes = new DataView(new ArrayBuffer(headerLength + dataLength));
     
-    // Write WAV header
     writeString(wavBytes, 0, 'RIFF');
     wavBytes.setUint32(4, 36 + dataLength, true);
     writeString(wavBytes, 8, 'WAVE');
@@ -158,7 +167,6 @@ function audioBufferToWav(buffer) {
     writeString(wavBytes, 36, 'data');
     wavBytes.setUint32(40, dataLength, true);
     
-    // Write audio data
     let offset = 44;
     for (let i = 0; i < samples[0].length; i++) {
         for (let channel = 0; channel < numChannels; channel++) {
@@ -188,6 +196,7 @@ function setupFileInputs() {
     document.getElementById('addSongsBtn').addEventListener('click', () => fileInput.click());
     document.getElementById('addSongsEmptyBtn').addEventListener('click', () => fileInput.click());
     document.getElementById('lyricsFileInput').addEventListener('change', handleLyricsImport);
+    document.getElementById('profilePicInput').addEventListener('change', handleProfilePictureUpload);
 }
 
 function handleFileSelect(event) {
@@ -256,7 +265,8 @@ function renderPlaylist() {
                 <button class="add-btn" id="addSongsEmptyBtn"><i class="fas fa-plus-circle"></i> Add Songs</button>
             </div>
         `;
-        document.getElementById('addSongsEmptyBtn')?.addEventListener('click', () => document.getElementById('fileInput').click());
+        const btn = document.getElementById('addSongsEmptyBtn');
+        if (btn) btn.addEventListener('click', () => document.getElementById('fileInput').click());
         return;
     }
     
@@ -669,120 +679,112 @@ function renderPlaylists() {
     playlistsGrid.innerHTML = html;
 }
 
+function viewPlaylist(index) {
+    const playlistSongs = playlists[index].songs;
+    if (playlistSongs.length === 0) {
+        showToast('This playlist is empty');
+        return;
+    }
+    // Show playlist songs in home page
+    showPage('home');
+    displayPlaylistSongs(playlistSongs);
+}
+
+function displayPlaylistSongs(songs) {
+    const songsList = document.getElementById('songsList');
+    let html = '';
+    songs.forEach((song, index) => {
+        const originalIndex = playlist.findIndex(s => s.id === song.id);
+        html += `
+            <div class="song-item" onclick="playSong(${originalIndex !== -1 ? originalIndex : 0})">
+                <div class="song-number">${(index + 1).toString().padStart(2, '0')}</div>
+                <div class="song-info">
+                    <div class="song-name">${escapeHtml(song.name)}</div>
+                    <div class="song-artist">${escapeHtml(song.artist)}</div>
+                </div>
+                <div class="song-duration">${formatTime(song.duration)}</div>
+            </div>
+        `;
+    });
+    songsList.innerHTML = html;
+}
+
 // ===========================================
-// USER FUNCTIONS
+// PROFILE FUNCTIONS
 // ===========================================
-function login() {
-    const username = document.getElementById('loginUsername').value;
-    const password = document.getElementById('loginPassword').value;
-    
-    const users = JSON.parse(localStorage.getItem('mboka_users') || '[]');
-    const user = users.find(u => u.username === username && u.password === password);
-    
-    if (user) {
-        currentUser = {
-            username: user.username,
-            name: user.name,
-            email: user.email,
-            picture: user.picture
-        };
-        updateUIForLoggedInUser();
-        showToast(`Welcome back, ${currentUser.name}!`);
-        document.getElementById('profile-dropdown').classList.remove('show');
-    } else {
-        showToast('Invalid username or password');
-    }
+function uploadProfilePicture() {
+    document.getElementById('profilePicInput').click();
 }
 
-function register() {
-    const username = document.getElementById('regUsername').value;
-    const password = document.getElementById('regPassword').value;
-    const confirm = document.getElementById('regConfirmPassword').value;
+function handleProfilePictureUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
     
-    if (!username || !password) {
-        showToast('Please fill all fields');
-        return;
-    }
-    
-    if (password !== confirm) {
-        showToast('Passwords do not match');
-        return;
-    }
-    
-    const users = JSON.parse(localStorage.getItem('mboka_users') || '[]');
-    if (users.find(u => u.username === username)) {
-        showToast('Username already exists');
-        return;
-    }
-    
-    const newUser = {
-        username: username,
-        password: password,
-        name: username,
-        email: `${username}@example.com`,
-        picture: null
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        userProfile.picture = e.target.result;
+        localStorage.setItem('mboka_profile', JSON.stringify(userProfile));
+        updateProfileUI();
+        showToast('✅ Profile picture updated');
     };
-    
-    users.push(newUser);
-    localStorage.setItem('mboka_users', JSON.stringify(users));
-    
-    currentUser = {
-        username: newUser.username,
-        name: newUser.name,
-        email: newUser.email,
-        picture: null
-    };
-    
-    updateUIForLoggedInUser();
-    showToast(`Account created! Welcome ${currentUser.name}`);
+    reader.readAsDataURL(file);
 }
 
-function logout() {
-    currentUser = null;
-    document.getElementById('auth-section').style.display = 'block';
-    document.getElementById('profile-section-dropdown').style.display = 'none';
-    document.getElementById('dropdown-username').textContent = 'Guest User';
-    document.getElementById('dropdown-email').textContent = 'Not logged in';
-    showToast('Logged out successfully');
-}
-
-function updateUIForLoggedInUser() {
-    if (!currentUser) return;
-    
-    document.getElementById('dropdown-username').textContent = currentUser.name;
-    document.getElementById('dropdown-email').textContent = currentUser.email;
-    document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('profile-section-dropdown').style.display = 'block';
-    document.getElementById('dropdownUserName').textContent = currentUser.name;
-    document.getElementById('dropdownUserEmailDisplay').textContent = currentUser.email;
-    
-    if (currentUser.picture) {
-        document.getElementById('dropdownUserAvatar').innerHTML = `<img src="${currentUser.picture}" style="width:100%;height:100%;object-fit:cover;">`;
-        document.getElementById('profile-icon').innerHTML = `<img src="${currentUser.picture}" style="width:100%;height:100%;object-fit:cover;">`;
-        document.getElementById('dropdown-profile-pic').innerHTML = `<img src="${currentUser.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+function loadProfilePicture() {
+    const saved = localStorage.getItem('mboka_profile');
+    if (saved) {
+        userProfile = JSON.parse(saved);
     }
 }
 
-function showProfilePage() {
-    showToast('Profile settings coming soon!');
+function updateProfileUI() {
+    if (userProfile.picture) {
+        // Update sidebar avatar
+        document.getElementById('sidebarAvatar').innerHTML = `<img src="${userProfile.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+        // Update dropdown profile pic
+        document.getElementById('dropdown-profile-pic').innerHTML = `<img src="${userProfile.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+        // Update profile icon in header
+        document.getElementById('profile-icon').innerHTML = `<img src="${userProfile.picture}" style="width:100%;height:100%;object-fit:cover;">`;
+    } else {
+        document.getElementById('sidebarAvatar').innerHTML = '<i class="fas fa-user-circle"></i>';
+        document.getElementById('dropdown-profile-pic').innerHTML = '<i class="fas fa-user"></i>';
+        document.getElementById('profile-icon').innerHTML = '<i class="fas fa-user"></i>';
+    }
 }
 
-function switchAuthTab(tab) {
-    const loginTab = document.querySelectorAll('.auth-tab')[0];
-    const registerTab = document.querySelectorAll('.auth-tab')[1];
-    const loginForm = document.getElementById('login-form-container');
-    const registerForm = document.getElementById('register-form-container');
+function showStats() {
+    const totalSongs = playlist.length;
+    const totalFavourites = favourites.length;
+    const totalPlaylists = playlists.length;
+    const totalPlaytime = Math.round(playlist.reduce((sum, s) => sum + (s.duration || 0), 0) / 60);
     
-    if (tab === 'login') {
-        loginTab.classList.add('active');
-        registerTab.classList.remove('active');
-        loginForm.style.display = 'block';
-        registerForm.style.display = 'none';
-    } else {
-        loginTab.classList.remove('active');
-        registerTab.classList.add('active');
-        loginForm.style.display = 'none';
-        registerForm.style.display = 'block';
+    alert(`📊 Statistics\n\nTotal Songs: ${totalSongs}\nFavourites: ${totalFavourites}\nPlaylists: ${totalPlaylists}\nTotal Playtime: ${totalPlaytime} minutes`);
+}
+
+function clearAllData() {
+    if (confirm('Clear all data? This will delete all songs, playlists, and favourites.')) {
+        playlist.forEach(song => URL.revokeObjectURL(song.url));
+        playlist = [];
+        favourites = [];
+        playlists = [];
+        currentIndex = -1;
+        isPlaying = false;
+        
+        localStorage.removeItem('mboka_playlist');
+        localStorage.removeItem('mboka_favourites');
+        localStorage.removeItem('mboka_playlists');
+        
+        renderPlaylist();
+        renderFavourites();
+        renderPlaylists();
+        
+        audio.pause();
+        nowPlayingCard.style.display = 'none';
+        playingAnimation.style.display = 'none';
+        currentSongTitle.textContent = 'Select a song to play';
+        currentSongArtist.textContent = 'Unknown Artist';
+        
+        showToast('✅ All data cleared');
     }
 }
 
@@ -819,21 +821,28 @@ function setupPageNavigation() {
         item.addEventListener('click', function(e) {
             e.preventDefault();
             const pageId = this.getAttribute('data-page');
+            showPage(pageId);
             
             sidebarItems.forEach(i => i.classList.remove('active'));
             this.classList.add('active');
             
-            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-            document.getElementById(`${pageId}-page`).classList.add('active');
-            
-            document.getElementById('sidebar').classList.remove('active');
-            document.getElementById('sidebarOverlay').classList.remove('active');
-            document.body.style.overflow = '';
-            
-            if (pageId === 'playlists') renderPlaylists();
-            if (pageId === 'favourites') renderFavourites();
+            closeSidebar();
         });
     });
+}
+
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+    document.getElementById(`${pageId}-page`).classList.add('active');
+    
+    if (pageId === 'playlists') renderPlaylists();
+    if (pageId === 'favourites') renderFavourites();
+}
+
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('active');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+    document.body.style.overflow = '';
 }
 
 function setupProfileDropdown() {
@@ -872,7 +881,7 @@ function loadSavedData() {
     if (savedPlaylist) {
         const saved = JSON.parse(savedPlaylist);
         if (saved.length > 0) {
-            showToast(`${saved.length} songs found in library. Add them again to play.`);
+            showToast(`${saved.length} songs found. Add them again to play.`);
         }
     }
     
@@ -915,4 +924,4 @@ function showToast(message) {
     setTimeout(() => {
         toast.style.display = 'none';
     }, 3000);
-}
+            }
