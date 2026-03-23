@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>MBOKA-TECH Music Player - Play Local Music</title>
+    <title>MBOKA-TECH Music Player</title>
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,10 +11,26 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Sidebar Overlay -->
+    <!-- Permission Modal for APK -->
+    <div id="permissionModal" class="permission-modal" style="display: flex;">
+        <div class="permission-content">
+            <i class="fas fa-music"></i>
+            <h2>MBOKA-TECH Music Player</h2>
+            <p>To play your music, please select audio files from your device.</p>
+            <button onclick="grantPermission()" class="permission-btn primary">
+                <i class="fas fa-folder-open"></i> Select Music Files
+            </button>
+            <button onclick="useDemoMode()" class="permission-btn secondary">
+                <i class="fas fa-headphones"></i> Try Demo Mode
+            </button>
+            <p style="font-size: 12px; margin-top: 15px; color: #888;">
+                Your files stay on your device. No internet needed.
+            </p>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
-    <!-- Sidebar Menu -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
@@ -48,12 +64,12 @@
         <div class="sidebar-footer">
             <div class="sidebar-version">
                 <i class="fas fa-code-branch"></i>
-                Version 1.0.0
+                Version 2.0.0
             </div>
         </div>
     </div>
 
-    <!-- Header with Yellow/Orange Gradient -->
+    <!-- Header -->
     <header>
         <div class="header-content">
             <div class="header-left">
@@ -61,7 +77,6 @@
                     <i class="fas fa-bars"></i>
                 </button>
             </div>
-            
             <div class="header-center">
                 <div class="logo-container">
                     <div class="logo-icon">
@@ -73,7 +88,6 @@
                     </div>
                 </div>
             </div>
-            
             <div class="header-right">
                 <div class="profile-dropdown">
                     <button class="profile-btn" id="profile-toggle">
@@ -81,60 +95,44 @@
                             <i class="fas fa-user"></i>
                         </div>
                     </button>
-                    
                     <div class="dropdown-content" id="profile-dropdown">
                         <div class="dropdown-header">
-                            <div id="dropdown-profile-pic">
-                                <i class="fas fa-user"></i>
-                            </div>
+                            <div id="dropdown-profile-pic"><i class="fas fa-user"></i></div>
                             <div>
                                 <strong id="dropdown-username">Guest User</strong>
                                 <div id="dropdown-email">Not logged in</div>
                             </div>
                         </div>
-                        
                         <div class="dropdown-divider"></div>
-                        
                         <div id="auth-section">
                             <div class="auth-tabs">
                                 <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
                                 <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
                             </div>
-                            
                             <div id="login-form-container" class="auth-form">
                                 <input type="text" id="loginUsername" placeholder="Username" class="auth-input">
                                 <input type="password" id="loginPassword" placeholder="Password" class="auth-input">
-                                <button onclick="login()" class="auth-btn">
-                                    <i class="fas fa-sign-in-alt"></i> Login
-                                </button>
+                                <button onclick="login()" class="auth-btn"><i class="fas fa-sign-in-alt"></i> Login</button>
                             </div>
-                            
                             <div id="register-form-container" class="auth-form" style="display: none;">
                                 <input type="text" id="regUsername" placeholder="Username" class="auth-input">
                                 <input type="password" id="regPassword" placeholder="Password" class="auth-input">
                                 <input type="password" id="regConfirmPassword" placeholder="Confirm Password" class="auth-input">
-                                <button onclick="register()" class="auth-btn">
-                                    <i class="fas fa-user-plus"></i> Create Account
-                                </button>
+                                <button onclick="register()" class="auth-btn"><i class="fas fa-user-plus"></i> Create Account</button>
                             </div>
                         </div>
-                        
                         <div id="profile-section-dropdown" style="display: none;">
                             <div style="text-align: center; padding: 15px;">
-                                <div id="dropdownUserAvatar" style="width: 70px; height: 70px; border-radius: 50%; background: #3498db; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                <div id="dropdownUserAvatar" style="width: 70px; height: 70px; border-radius: 50%; background: #ff6b6b; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-user" style="font-size: 2rem; color: white;"></i>
                                 </div>
                                 <strong id="dropdownUserName"></strong>
                                 <div id="dropdownUserEmailDisplay" style="font-size: 0.85rem; color: #666;"></div>
                             </div>
                             <div class="dropdown-divider"></div>
-                            <a href="#" onclick="showProfilePage(); return false;">
-                                <i class="fas fa-user-circle"></i> My Account
-                            </a>
+                            <a href="#" onclick="showProfilePage(); return false;"><i class="fas fa-user-circle"></i> My Account</a>
                             <div class="dropdown-divider"></div>
-                            <a href="#" onclick="logout(); return false;">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
+                            <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
                         </div>
                     </div>
                 </div>
@@ -143,9 +141,9 @@
     </header>
 
     <div class="container">
-        <!-- Main Content Area -->
+        <!-- Home Page -->
         <div id="home-page" class="page active">
-            <!-- Now Playing Section -->
+            <!-- Now Playing -->
             <div class="now-playing-card" id="nowPlayingCard" style="display: none;">
                 <div class="album-art">
                     <div class="album-art-placeholder">
@@ -170,25 +168,13 @@
                     </div>
                     <span id="duration">0:00</span>
                 </div>
-                
                 <div class="control-buttons">
-                    <button class="control-btn" id="prevBtn" onclick="previousSong()">
-                        <i class="fas fa-backward-step"></i>
-                    </button>
-                    <button class="control-btn play-btn" id="playPauseBtn" onclick="playPause()">
-                        <i class="fas fa-play"></i>
-                    </button>
-                    <button class="control-btn" id="nextBtn" onclick="nextSong()">
-                        <i class="fas fa-forward-step"></i>
-                    </button>
-                    <button class="control-btn" id="repeatBtn" onclick="toggleRepeat()">
-                        <i class="fas fa-repeat"></i>
-                    </button>
-                    <button class="control-btn" id="shuffleBtn" onclick="toggleShuffle()">
-                        <i class="fas fa-shuffle"></i>
-                    </button>
+                    <button class="control-btn" onclick="previousSong()"><i class="fas fa-backward-step"></i></button>
+                    <button class="control-btn play-btn" id="playPauseBtn" onclick="playPause()"><i class="fas fa-play"></i></button>
+                    <button class="control-btn" onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
+                    <button class="control-btn" id="repeatBtn" onclick="toggleRepeat()"><i class="fas fa-repeat"></i></button>
+                    <button class="control-btn" id="shuffleBtn" onclick="toggleShuffle()"><i class="fas fa-shuffle"></i></button>
                 </div>
-                
                 <div class="volume-container">
                     <i class="fas fa-volume-down"></i>
                     <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="0.7">
@@ -200,10 +186,10 @@
             <div class="playlist-header">
                 <div class="playlist-title">
                     <i class="fas fa-list"></i>
-                    <h2>Playing From Playlist</h2>
+                    <h2>My Music Library</h2>
                 </div>
                 <div class="playlist-actions">
-                    <button class="action-btn" onclick="document.getElementById('fileInput').click()">
+                    <button class="action-btn" id="addSongsBtn">
                         <i class="fas fa-plus"></i> Add Songs
                     </button>
                     <button class="action-btn" onclick="clearPlaylist()">
@@ -219,9 +205,7 @@
                     <i class="fas fa-headphones"></i>
                     <h3>No Songs Added</h3>
                     <p>Click "Add Songs" to add music from your device</p>
-                    <button class="add-btn" onclick="document.getElementById('fileInput').click()">
-                        <i class="fas fa-plus-circle"></i> Add Songs
-                    </button>
+                    <button class="add-btn" id="addSongsEmptyBtn"><i class="fas fa-plus-circle"></i> Add Songs</button>
                 </div>
             </div>
 
@@ -231,12 +215,8 @@
                     <i class="fas fa-align-left"></i>
                     <h3>Lyrics</h3>
                     <div class="lyrics-actions">
-                        <button class="import-lyrics-btn" onclick="importLyrics()">
-                            <i class="fas fa-file-import"></i> Import
-                        </button>
-                        <button class="close-lyrics" onclick="closeLyrics()">
-                            <i class="fas fa-times"></i>
-                        </button>
+                        <button class="import-lyrics-btn" onclick="importLyrics()"><i class="fas fa-file-import"></i> Import</button>
+                        <button class="close-lyrics" onclick="closeLyrics()"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
                 <div class="lyrics-content" id="lyricsContent">
@@ -245,18 +225,16 @@
             </div>
         </div>
         
-        <!-- My Playlists Page -->
+        <!-- Playlists Page -->
         <div id="playlists-page" class="page">
             <div class="card">
                 <h2><i class="fas fa-list"></i> My Playlists</h2>
-                <button class="create-playlist-btn" onclick="createPlaylist()">
-                    <i class="fas fa-plus"></i> Create New Playlist
-                </button>
+                <button class="create-playlist-btn" onclick="createPlaylist()"><i class="fas fa-plus"></i> Create New Playlist</button>
                 <div class="playlists-grid" id="playlistsGrid"></div>
             </div>
         </div>
         
-        <!-- My Favourites Page -->
+        <!-- Favourites Page -->
         <div id="favourites-page" class="page">
             <div class="card">
                 <h2><i class="fas fa-heart"></i> My Favourites</h2>
@@ -264,24 +242,25 @@
             </div>
         </div>
         
-        <!-- About Us Page -->
+        <!-- About Page -->
         <div id="about-page" class="page">
             <div class="card">
                 <h2><i class="fas fa-info-circle"></i> About Us</h2>
                 <div class="about-content">
                     <i class="fas fa-music" style="font-size: 4rem; color: #ff6b6b;"></i>
                     <h3>MBOKA-TECH Music Player</h3>
-                    <p>Version 1.0.0</p>
-                    <p>A powerful offline music player that lets you enjoy your local music files with style.</p>
+                    <p>Version 2.0.0</p>
+                    <p>Play your local music files with style - completely offline!</p>
                     <div class="about-features">
                         <h4>Features:</h4>
                         <ul>
-                            <li>✓ Play local music files</li>
+                            <li>✓ Play local MP3, WAV, AAC files</li>
                             <li>✓ Create and manage playlists</li>
                             <li>✓ Add songs to favourites</li>
                             <li>✓ Import lyrics for any song</li>
                             <li>✓ Repeat and shuffle modes</li>
-                            <li>✓ Beautiful interface</li>
+                            <li>✓ Works completely offline</li>
+                            <li>✓ Optimized for Android APK</li>
                         </ul>
                     </div>
                     <p style="margin-top: 20px;">&copy; 2025 MBOKA-TECH. All rights reserved.</p>
@@ -291,14 +270,12 @@
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast-notification" style="display: none;"></div>
+    <div id="toast" class="toast-notification"></div>
     
-    <!-- Hidden file input for lyrics import -->
+    <!-- Hidden Inputs -->
     <input type="file" id="lyricsFileInput" accept=".txt,.lrc" style="display: none">
-
-    <!-- Audio Element -->
     <audio id="audioPlayer"></audio>
 
     <script src="script.js"></script>
 </body>
-                            </html>
+                                                                               </html>
