@@ -11,259 +11,254 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Permission Modal for APK -->
-    <div id="permissionModal" class="permission-modal" style="display: flex;">
-        <div class="permission-content">
-            <i class="fas fa-music"></i>
-            <h2>MBOKA-TECH Music Player</h2>
-            <p>To play your music, please select audio files from your device.</p>
-            <button onclick="grantPermission()" class="permission-btn primary">
-                <i class="fas fa-folder-open"></i> Select Music Files
-            </button>
-            <button onclick="useDemoMode()" class="permission-btn secondary">
-                <i class="fas fa-headphones"></i> Try Demo Mode
-            </button>
-            <p style="font-size: 12px; margin-top: 15px; color: #888;">
-                Your files stay on your device. No internet needed.
-            </p>
-        </div>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
+    <!-- Permission Request Screen -->
+    <div id="permissionScreen" class="permission-screen">
+        <div class="permission-card">
+            <div class="permission-icon">
                 <i class="fas fa-music"></i>
-                <span>MBOKA-TECH</span>
             </div>
-            <button class="close-sidebar" id="closeSidebar">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="sidebar-menu">
-            <a href="#" class="sidebar-item active" data-page="home">
-                <i class="fas fa-home"></i>
-                <span>Home</span>
-            </a>
-            <a href="#" class="sidebar-item" data-page="playlists">
-                <i class="fas fa-list"></i>
-                <span>My Playlists</span>
-            </a>
-            <a href="#" class="sidebar-item" data-page="favourites">
-                <i class="fas fa-heart"></i>
-                <span>My Favourites</span>
-            </a>
-            <a href="#" class="sidebar-item" data-page="about">
-                <i class="fas fa-info-circle"></i>
-                <span>About Us</span>
-            </a>
-        </div>
-        
-        <div class="sidebar-footer">
-            <div class="sidebar-version">
-                <i class="fas fa-code-branch"></i>
-                Version 2.0.0
-            </div>
-        </div>
-    </div>
-
-    <!-- Header -->
-    <header>
-        <div class="header-content">
-            <div class="header-left">
-                <button class="menu-btn" id="menuBtn">
-                    <i class="fas fa-bars"></i>
+            <h2>Storage Permission Required</h2>
+            <p>MBOKA-TECH Music Player needs access to your device storage to play your music files.</p>
+            <div class="permission-buttons">
+                <button class="btn-primary" id="requestPermissionBtn">
+                    <i class="fas fa-folder-open"></i> Select Music Files
+                </button>
+                <button class="btn-secondary" id="demoModeBtn">
+                    <i class="fas fa-headphones"></i> Try Demo Mode
                 </button>
             </div>
-            <div class="header-center">
-                <div class="logo-container">
-                    <div class="logo-icon">
-                        <i class="fas fa-music"></i>
-                    </div>
-                    <div class="logo-text">
-                        <h1>MBOKA-TECH</h1>
-                        <p>Music Player</p>
-                    </div>
-                </div>
-            </div>
-            <div class="header-right">
-                <div class="profile-dropdown">
-                    <button class="profile-btn" id="profile-toggle">
-                        <div id="profile-icon">
-                            <i class="fas fa-user"></i>
-                        </div>
-                    </button>
-                    <div class="dropdown-content" id="profile-dropdown">
-                        <div class="dropdown-header">
-                            <div id="dropdown-profile-pic"><i class="fas fa-user"></i></div>
-                            <div>
-                                <strong id="dropdown-username">Guest User</strong>
-                                <div id="dropdown-email">Not logged in</div>
-                            </div>
-                        </div>
-                        <div class="dropdown-divider"></div>
-                        <div id="auth-section">
-                            <div class="auth-tabs">
-                                <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
-                                <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
-                            </div>
-                            <div id="login-form-container" class="auth-form">
-                                <input type="text" id="loginUsername" placeholder="Username" class="auth-input">
-                                <input type="password" id="loginPassword" placeholder="Password" class="auth-input">
-                                <button onclick="login()" class="auth-btn"><i class="fas fa-sign-in-alt"></i> Login</button>
-                            </div>
-                            <div id="register-form-container" class="auth-form" style="display: none;">
-                                <input type="text" id="regUsername" placeholder="Username" class="auth-input">
-                                <input type="password" id="regPassword" placeholder="Password" class="auth-input">
-                                <input type="password" id="regConfirmPassword" placeholder="Confirm Password" class="auth-input">
-                                <button onclick="register()" class="auth-btn"><i class="fas fa-user-plus"></i> Create Account</button>
-                            </div>
-                        </div>
-                        <div id="profile-section-dropdown" style="display: none;">
-                            <div style="text-align: center; padding: 15px;">
-                                <div id="dropdownUserAvatar" style="width: 70px; height: 70px; border-radius: 50%; background: #ff6b6b; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-user" style="font-size: 2rem; color: white;"></i>
-                                </div>
-                                <strong id="dropdownUserName"></strong>
-                                <div id="dropdownUserEmailDisplay" style="font-size: 0.85rem; color: #666;"></div>
-                            </div>
-                            <div class="dropdown-divider"></div>
-                            <a href="#" onclick="showProfilePage(); return false;"><i class="fas fa-user-circle"></i> My Account</a>
-                            <div class="dropdown-divider"></div>
-                            <a href="#" onclick="logout(); return false;"><i class="fas fa-sign-out-alt"></i> Logout</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <p class="permission-note">Your files stay on your device. No internet needed.</p>
         </div>
-    </header>
+    </div>
 
-    <div class="container">
-        <!-- Home Page -->
-        <div id="home-page" class="page active">
-            <!-- Now Playing -->
-            <div class="now-playing-card" id="nowPlayingCard" style="display: none;">
-                <div class="album-art">
-                    <div class="album-art-placeholder">
-                        <i class="fas fa-music"></i>
-                    </div>
-                    <div class="playing-animation" id="playingAnimation" style="display: none;">
-                        <span></span><span></span><span></span>
-                    </div>
+    <!-- Main App -->
+    <div id="mainApp" style="display: none;">
+        <!-- Sidebar -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fas fa-music"></i>
+                    <span>MBOKA-TECH</span>
                 </div>
-                <div class="song-info-large">
-                    <h3 id="currentSongTitle">Select a song to play</h3>
-                    <p id="currentSongArtist">Unknown Artist</p>
+                <button class="close-sidebar" id="closeSidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-user" id="sidebarUser">
+                <div class="sidebar-avatar" id="sidebarAvatar" onclick="uploadProfilePicture()">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="sidebar-user-info">
+                    <div id="sidebarUserName">Music Lover</div>
+                    <div id="sidebarUserEmail">Local Music Player</div>
                 </div>
             </div>
-
-            <!-- Player Controls -->
-            <div class="player-controls-card">
-                <div class="progress-container">
-                    <span id="currentTime">0:00</span>
-                    <div class="progress-bar" id="progressBar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                    <span id="duration">0:00</span>
-                </div>
-                <div class="control-buttons">
-                    <button class="control-btn" onclick="previousSong()"><i class="fas fa-backward-step"></i></button>
-                    <button class="control-btn play-btn" id="playPauseBtn" onclick="playPause()"><i class="fas fa-play"></i></button>
-                    <button class="control-btn" onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
-                    <button class="control-btn" id="repeatBtn" onclick="toggleRepeat()"><i class="fas fa-repeat"></i></button>
-                    <button class="control-btn" id="shuffleBtn" onclick="toggleShuffle()"><i class="fas fa-shuffle"></i></button>
-                </div>
-                <div class="volume-container">
-                    <i class="fas fa-volume-down"></i>
-                    <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="0.7">
-                    <i class="fas fa-volume-up"></i>
-                </div>
-            </div>
-
-            <!-- Playlist Header -->
-            <div class="playlist-header">
-                <div class="playlist-title">
+            
+            <div class="sidebar-menu">
+                <a href="#" class="sidebar-item active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>Home</span>
+                </a>
+                <a href="#" class="sidebar-item" data-page="playlists">
                     <i class="fas fa-list"></i>
-                    <h2>My Music Library</h2>
-                </div>
-                <div class="playlist-actions">
-                    <button class="action-btn" id="addSongsBtn">
-                        <i class="fas fa-plus"></i> Add Songs
-                    </button>
-                    <button class="action-btn" onclick="clearPlaylist()">
-                        <i class="fas fa-trash"></i> Clear All
-                    </button>
-                </div>
-                <input type="file" id="fileInput" accept="audio/*" multiple style="display: none">
+                    <span>My Playlists</span>
+                </a>
+                <a href="#" class="sidebar-item" data-page="favourites">
+                    <i class="fas fa-heart"></i>
+                    <span>My Favourites</span>
+                </a>
+                <a href="#" class="sidebar-item" data-page="about">
+                    <i class="fas fa-info-circle"></i>
+                    <span>About Us</span>
+                </a>
             </div>
-
-            <!-- Songs List -->
-            <div class="songs-list" id="songsList">
-                <div class="empty-playlist">
-                    <i class="fas fa-headphones"></i>
-                    <h3>No Songs Added</h3>
-                    <p>Click "Add Songs" to add music from your device</p>
-                    <button class="add-btn" id="addSongsEmptyBtn"><i class="fas fa-plus-circle"></i> Add Songs</button>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-version">
+                    <i class="fas fa-code-branch"></i>
+                    Version 2.0.0
                 </div>
             </div>
+        </div>
 
-            <!-- Lyrics Section -->
-            <div class="lyrics-card" id="lyricsCard" style="display: none;">
-                <div class="lyrics-header">
-                    <i class="fas fa-align-left"></i>
-                    <h3>Lyrics</h3>
-                    <div class="lyrics-actions">
-                        <button class="import-lyrics-btn" onclick="importLyrics()"><i class="fas fa-file-import"></i> Import</button>
-                        <button class="close-lyrics" onclick="closeLyrics()"><i class="fas fa-times"></i></button>
+        <!-- Header -->
+        <header>
+            <div class="header-content">
+                <div class="header-left">
+                    <button class="menu-btn" id="menuBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+                <div class="header-center">
+                    <div class="logo-container">
+                        <div class="logo-icon">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <div class="logo-text">
+                            <h1>MBOKA-TECH</h1>
+                            <p>Music Player</p>
+                        </div>
                     </div>
                 </div>
-                <div class="lyrics-content" id="lyricsContent">
-                    <p>No lyrics added. Click "Import" to add lyrics for this song.</p>
+                <div class="header-right">
+                    <div class="profile-dropdown">
+                        <button class="profile-btn" id="profile-toggle">
+                            <div id="profile-icon">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        </button>
+                        <div class="dropdown-content" id="profile-dropdown">
+                            <div class="dropdown-header">
+                                <div id="dropdown-profile-pic"><i class="fas fa-user"></i></div>
+                                <div>
+                                    <strong id="dropdown-username">Music Lover</strong>
+                                    <div id="dropdown-email">Local Player</div>
+                                </div>
+                            </div>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" onclick="uploadProfilePicture(); return false;">
+                                <i class="fas fa-camera"></i> Upload Profile Picture
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" onclick="showStats(); return false;">
+                                <i class="fas fa-chart-bar"></i> Statistics
+                            </a>
+                            <a href="#" onclick="clearAllData(); return false;">
+                                <i class="fas fa-trash"></i> Clear All Data
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Playlists Page -->
-        <div id="playlists-page" class="page">
-            <div class="card">
-                <h2><i class="fas fa-list"></i> My Playlists</h2>
-                <button class="create-playlist-btn" onclick="createPlaylist()"><i class="fas fa-plus"></i> Create New Playlist</button>
-                <div class="playlists-grid" id="playlistsGrid"></div>
-            </div>
-        </div>
-        
-        <!-- Favourites Page -->
-        <div id="favourites-page" class="page">
-            <div class="card">
-                <h2><i class="fas fa-heart"></i> My Favourites</h2>
-                <div class="songs-list" id="favouritesList"></div>
-            </div>
-        </div>
-        
-        <!-- About Page -->
-        <div id="about-page" class="page">
-            <div class="card">
-                <h2><i class="fas fa-info-circle"></i> About Us</h2>
-                <div class="about-content">
-                    <i class="fas fa-music" style="font-size: 4rem; color: #ff6b6b;"></i>
-                    <h3>MBOKA-TECH Music Player</h3>
-                    <p>Version 2.0.0</p>
-                    <p>Play your local music files with style - completely offline!</p>
-                    <div class="about-features">
-                        <h4>Features:</h4>
-                        <ul>
-                            <li>✓ Play local MP3, WAV, AAC files</li>
-                            <li>✓ Create and manage playlists</li>
-                            <li>✓ Add songs to favourites</li>
-                            <li>✓ Import lyrics for any song</li>
-                            <li>✓ Repeat and shuffle modes</li>
-                            <li>✓ Works completely offline</li>
-                            <li>✓ Optimized for Android APK</li>
-                        </ul>
+        </header>
+
+        <div class="container">
+            <!-- Home Page -->
+            <div id="home-page" class="page active">
+                <!-- Now Playing -->
+                <div class="now-playing-card" id="nowPlayingCard" style="display: none;">
+                    <div class="album-art">
+                        <div class="album-art-placeholder">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <div class="playing-animation" id="playingAnimation" style="display: none;">
+                            <span></span><span></span><span></span>
+                        </div>
                     </div>
-                    <p style="margin-top: 20px;">&copy; 2025 MBOKA-TECH. All rights reserved.</p>
+                    <div class="song-info-large">
+                        <h3 id="currentSongTitle">Select a song to play</h3>
+                        <p id="currentSongArtist">Unknown Artist</p>
+                    </div>
+                </div>
+
+                <!-- Player Controls -->
+                <div class="player-controls-card">
+                    <div class="progress-container">
+                        <span id="currentTime">0:00</span>
+                        <div class="progress-bar" id="progressBar">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <span id="duration">0:00</span>
+                    </div>
+                    <div class="control-buttons">
+                        <button class="control-btn" onclick="previousSong()"><i class="fas fa-backward-step"></i></button>
+                        <button class="control-btn play-btn" id="playPauseBtn" onclick="playPause()"><i class="fas fa-play"></i></button>
+                        <button class="control-btn" onclick="nextSong()"><i class="fas fa-forward-step"></i></button>
+                        <button class="control-btn" id="repeatBtn" onclick="toggleRepeat()"><i class="fas fa-repeat"></i></button>
+                        <button class="control-btn" id="shuffleBtn" onclick="toggleShuffle()"><i class="fas fa-shuffle"></i></button>
+                    </div>
+                    <div class="volume-container">
+                        <i class="fas fa-volume-down"></i>
+                        <input type="range" id="volumeControl" min="0" max="1" step="0.01" value="0.7">
+                        <i class="fas fa-volume-up"></i>
+                    </div>
+                </div>
+
+                <!-- Playlist Header -->
+                <div class="playlist-header">
+                    <div class="playlist-title">
+                        <i class="fas fa-list"></i>
+                        <h2>My Music Library</h2>
+                    </div>
+                    <div class="playlist-actions">
+                        <button class="action-btn" id="addSongsBtn">
+                            <i class="fas fa-plus"></i> Add Songs
+                        </button>
+                        <button class="action-btn" onclick="clearPlaylist()">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                    <input type="file" id="fileInput" accept="audio/*" multiple style="display: none">
+                </div>
+
+                <!-- Songs List -->
+                <div class="songs-list" id="songsList">
+                    <div class="empty-playlist">
+                        <i class="fas fa-headphones"></i>
+                        <h3>No Songs Added</h3>
+                        <p>Click "Add Songs" to add music from your device</p>
+                        <button class="add-btn" id="addSongsEmptyBtn"><i class="fas fa-plus-circle"></i> Add Songs</button>
+                    </div>
+                </div>
+
+                <!-- Lyrics Section -->
+                <div class="lyrics-card" id="lyricsCard" style="display: none;">
+                    <div class="lyrics-header">
+                        <i class="fas fa-align-left"></i>
+                        <h3>Lyrics</h3>
+                        <div class="lyrics-actions">
+                            <button class="import-lyrics-btn" onclick="importLyrics()"><i class="fas fa-file-import"></i> Import</button>
+                            <button class="close-lyrics" onclick="closeLyrics()"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                    <div class="lyrics-content" id="lyricsContent">
+                        <p>No lyrics added. Click "Import" to add lyrics for this song.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Playlists Page -->
+            <div id="playlists-page" class="page">
+                <div class="card">
+                    <h2><i class="fas fa-list"></i> My Playlists</h2>
+                    <button class="create-playlist-btn" onclick="createPlaylist()"><i class="fas fa-plus"></i> Create New Playlist</button>
+                    <div class="playlists-grid" id="playlistsGrid"></div>
+                </div>
+            </div>
+            
+            <!-- Favourites Page -->
+            <div id="favourites-page" class="page">
+                <div class="card">
+                    <h2><i class="fas fa-heart"></i> My Favourites</h2>
+                    <div class="songs-list" id="favouritesList"></div>
+                </div>
+            </div>
+            
+            <!-- About Page -->
+            <div id="about-page" class="page">
+                <div class="card">
+                    <h2><i class="fas fa-info-circle"></i> About Us</h2>
+                    <div class="about-content">
+                        <i class="fas fa-music" style="font-size: 4rem; color: #ff6b6b;"></i>
+                        <h3>MBOKA-TECH Music Player</h3>
+                        <p>Version 2.0.0</p>
+                        <p>Play your local music files with style - completely offline!</p>
+                        <div class="about-features">
+                            <h4>Features:</h4>
+                            <ul>
+                                <li>✓ Play local MP3, WAV, AAC files</li>
+                                <li>✓ Create and manage playlists</li>
+                                <li>✓ Add songs to favourites</li>
+                                <li>✓ Import lyrics for any song</li>
+                                <li>✓ Upload profile picture</li>
+                                <li>✓ Repeat and shuffle modes</li>
+                                <li>✓ Works completely offline</li>
+                            </ul>
+                        </div>
+                        <p style="margin-top: 20px;">&copy; 2025 MBOKA-TECH. All rights reserved.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -274,8 +269,9 @@
     
     <!-- Hidden Inputs -->
     <input type="file" id="lyricsFileInput" accept=".txt,.lrc" style="display: none">
+    <input type="file" id="profilePicInput" accept="image/*" style="display: none">
     <audio id="audioPlayer"></audio>
 
     <script src="script.js"></script>
 </body>
-                                                                               </html>
+                </html>
